@@ -579,6 +579,7 @@ function Info({ label, value, icon, className = "" }: any) {
   );
 }
 
+
 function ReferralCard({ referral, doctorAvatar }: { referral: Referral; doctorAvatar?: string | null }) {
   return (
     <MobileInfoCard
