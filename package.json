@@ -1,0 +1,76 @@
+{
+  "name": "alrifai-referrals",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^1.8.0",
+    "next": "16.2.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-is": "^19.2.5",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.0",
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "concurrently": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.7.2",
+    "wait-on": "latest"
+  },
+  "build": {
+    
+
+    "appId": "com.alrifai.referrals",
+    "productName": "Hospital Referral",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      ".next/**/*",
+      "app/**/*",
+      "src/**/*",
+      "public/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "next.config.js",
+      "tsconfig.json",
+      ".env.local"
+
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "win": {
+      "target": "nsis",
+      "icon": "public/icons/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Hospital Referral"
+    }
+  }
+}
