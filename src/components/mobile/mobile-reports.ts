@@ -150,7 +150,10 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
     return `
       <section class="doctor-section">
         <h2>👨‍⚕️ الطبيب: ${doc.full_name || "غير معروف"}</h2>
-        <table>
+       
+
+<div class="table-wrap"><table>
+
           <thead>
             <tr>
               <th>المريض</th>
@@ -172,7 +175,9 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
             <tr><td colspan="6"><strong>📊 الصافي المتبقي</strong></td><td><strong>${formatMoney(Math.max(totalAmount - settledAmount, 0))}</strong></td></tr>
             ` : ""}
           </tfoot>
-        </table>
+       
+</table></div>
+
       </section>`;
   }).join("");
 
@@ -192,6 +197,13 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${title}</title>
   <style>
+  
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}
+table{min-width:720px;width:100%;border-collapse:collapse;font-size:10px;margin:8px 0}
+th,td{white-space:nowrap}
+
+
+
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:16px;color:#0f172a;background:#f8fafc;direction:rtl}
     .container{max-width:800px;margin:0 auto;background:white;border-radius:16px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
@@ -199,7 +211,6 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
     .meta{background:#f1f5f9;border-radius:12px;padding:12px;margin:12px 0;font-size:13px;color:#475569;line-height:1.8}
     .doctor-section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0}
     h2{font-size:16px;color:#0f8f7d;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0}
     th,td{border:1px solid #e2e8f0;padding:6px;text-align:right}
     th{background:#f0fdf4;color:#0f8f7d;font-weight:700}
     td{color:#334155}
@@ -258,6 +269,12 @@ export function buildSettlementReceiptHtml(data: SettlementReceiptData): string 
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>إيصال تصفية مستحقات</title>
   <style>
+  
+
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}
+table{min-width:680px;width:100%;border-collapse:collapse;font-size:10px;margin:16px 0}
+th,td{white-space:nowrap}
+
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:16px;color:#0f172a;background:#f8fafc;direction:rtl}
     .container{max-width:800px;margin:0 auto;background:white;border-radius:16px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
@@ -269,7 +286,6 @@ export function buildSettlementReceiptHtml(data: SettlementReceiptData): string 
     .meta-label{color:#64748b;font-size:11px;font-weight:600}
     .meta-value{color:#0f172a;font-weight:700;font-size:14px}
     .amount-highlight{background:#059669;color:white;padding:8px 16px;border-radius:8px;font-size:18px;font-weight:800;text-align:center;grid-column:1/-1}
-    table{width:100%;border-collapse:collapse;font-size:10px;margin:16px 0}
     th,td{border:1px solid #e2e8f0;padding:6px;text-align:right}
     th{background:#f0fdf4;color:#059669;font-weight:700}
     .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:2px dashed #e2e8f0;font-size:11px;color:#94a3b8}
@@ -294,7 +310,11 @@ export function buildSettlementReceiptHtml(data: SettlementReceiptData): string 
       <div class="amount-highlight">💰 إجمالي المبلغ المصفى: ${formatMoney(amount)}</div>
     </div>
     <h3 style="margin-top:20px;color:#334155;">📋 تفاصيل الحالات المصفاة:</h3>
-    <table>
+  
+
+<div class="table-wrap"><table>
+
+
       <thead>
         <tr>
           <th>المريض</th>
@@ -309,7 +329,7 @@ export function buildSettlementReceiptHtml(data: SettlementReceiptData): string 
       <tfoot>
         <tr><td colspan="5"><strong>الإجمالي</strong></td><td><strong>${formatMoney(amount)}</strong></td></tr>
       </tfoot>
-    </table>
+   </table></div>
     <div class="signature-area">
       <div class="signature-box">توقيع المحاسب</div>
       <div class="signature-box">توقيع الطبيب</div>
