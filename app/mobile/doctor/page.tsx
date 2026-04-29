@@ -288,21 +288,36 @@ export default function DoctorMobilePage() {
   }
 
   async function uploadAttachment(referralId: string) {
-    if (!attachment) return { attachment_name: null, attachment_path: null };
+  if (!attachment) {
+    return { attachment_name: null, attachment_path: null };
+  }
 
-    const supabase = createClient();
-    const safeName = attachment.name.replace(/[^\w.\-\u0600-\u06FF]/g, "_");
-    const path = `doctor-referrals/${referralId}/${Date.now()}-${safeName}`;
+  const supabase = createClient();
 
-    const { error } = await supabase.storage.from("referral-files").upload(path, attachment, {
-      upsert: false,
+  const safeName = attachment.name
+    .replace(/[^\w.\-\u0600-\u06FF]/g, "_")
+    .replace(/\s+/g, "_");
+
+  const path = `doctor-referrals/${referralId}/${Date.now()}-${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("referral-files")
+    .upload(path, attachment, {
+      upsert: true,
       contentType: attachment.type || "application/octet-stream",
     });
 
-    if (error) throw error;
-
-    return { attachment_name: attachment.name, attachment_path: path };
+  if (uploadError) {
+    throw new Error(`فشل رفع المرفق: ${uploadError.message}`);
   }
+
+  return {
+    attachment_name: attachment.name,
+    attachment_path: path,
+  };
+}
+
+
 
   async function createReferral() {
     const actionDoctorId = doctor?.id || referrals.map((r) => relationDoctorId(r)).find(Boolean);
@@ -350,16 +365,33 @@ export default function DoctorMobilePage() {
 
       const uploaded = await uploadAttachment(created.id);
 
-      if (uploaded.attachment_path) {
-        const { error: updateError } = await supabase
-          .from("referrals")
-          .update(uploaded)
-          .eq("id", created.id);
+if (uploaded.attachment_path) {
+  const { data: updatedReferral, error: updateError } = await supabase
+    .from("referrals")
+    .update({
+      attachment_name: uploaded.attachment_name,
+      attachment_path: uploaded.attachment_path,
+    })
+    .eq("id", created.id)
+    .select("id, attachment_name, attachment_path")
+    .single();
 
-        if (updateError) throw updateError;
-      }
+  if (updateError) {
+    throw new Error(`تم إنشاء الإحالة لكن فشل حفظ بيانات المرفق في قاعدة البيانات: ${updateError.message}`);
+  }
 
-      setMessage("تمت إضافة الإحالة بنجاح.");
+  if (!updatedReferral?.attachment_path) {
+    throw new Error("تم رفع المرفق لكن لم يتم حفظ مساره في قاعدة البيانات.");
+  }
+}
+
+     
+setMessage(
+  uploaded.attachment_path
+    ? "تمت إضافة الإحالة وحفظ المرفق بنجاح."
+    : "تمت إضافة الإحالة بدون مرفق."
+);
+
       setForm(emptyForm);
       setAttachment(null);
       await boot();
