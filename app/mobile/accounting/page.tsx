@@ -334,9 +334,9 @@ export default function Page() {
         {charts}
       </>}
 
-      {(active === "profits" || active === "reports") && (
+      {(active === "settlements" || active === "reports") && (
         <MobilePanel
-          title={active === "profits" ? "تصفية المستحقات" : "التقارير المالية"}
+          title={active === "settlements" ? "تصفية المستحقات" : "التقارير المالية"}
           subtitle="عام أو محدد حسب الطبيب والفترة والقسم"
         >
           <Filters
@@ -370,7 +370,7 @@ export default function Page() {
           )}
 
           {/* أزرار التصفية - تظهر فقط في قسم المستحقات */}
-          {active === "profits" && (
+          {active === "settlements" && (
             <div className="space-y-2 mb-3">
               <button
                 disabled={!canSettle || busy}
