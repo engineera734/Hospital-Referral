@@ -22,6 +22,9 @@ export function downloadMobileHtml(fileName: string, htmlContent: string): void 
 /**
  * تنزيل التقرير كـ PDF باستخدام html2pdf (يتم تحميل المكتبة ديناميكياً)
  */
+
+
+
 export async function downloadMobilePdf(fileName: string, htmlContent: string): Promise<void> {
   const win = window.open("", "_blank");
 
@@ -31,31 +34,24 @@ export async function downloadMobilePdf(fileName: string, htmlContent: string): 
   }
 
   win.document.open();
-  win.document.write(htmlContent);
+  win.document.write(`
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8" />
+        <title>${fileName}</title>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+    </html>
+  `);
   win.document.close();
-
-  win.focus();
 
   setTimeout(() => {
+    win.focus();
     win.print();
-  }, 700);
-}
-
-/**
- * فتح HTML في نافذة جديدة للطباعة
- */
-export function printMobileHtml(htmlContent: string): void {
-  const win = window.open("", "_blank");
-  if (!win) {
-    // إذا فشل فتح النافذة، ننزل الملف مباشرة
-    downloadMobileHtml("تقرير-للطباعة.html", htmlContent);
-    return;
-  }
-  win.document.open();
-  win.document.write(htmlContent);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 500);
+  }, 800);
 }
 
 export interface FinancialReportData {
