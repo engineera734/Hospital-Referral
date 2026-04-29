@@ -142,7 +142,11 @@ export default function MobileShell({
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-100 pb-24 text-slate-900">
+    
+
+<main dir="rtl" className="min-h-screen bg-slate-100 pb-[96px] text-slate-900">
+
+
       <header className="sticky top-0 z-40 border-b border-white/70 bg-white/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <button
@@ -174,25 +178,28 @@ export default function MobileShell({
       <section className="mx-auto max-w-md px-4 py-4">{children}</section>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-100 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1 px-2 py-2">
-          {cleanTabs.slice(0, 4).map((tab) => {
-            const selected = tab.key === active;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => changeTab(tab.key)}
-                className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-black transition ${
-                  selected ? "bg-emerald-50 text-[#0f8f7d]" : "text-slate-400"
-                }`}
-              >
-                {tab.icon || <Home size={18} />}
-                <span className="truncate">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+  <div className="mx-auto flex h-[76px] max-w-md items-center justify-around gap-1 px-2">
+    {cleanTabs.slice(0, 4).map((tab) => {
+      const selected = tab.key === active;
+      return (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => changeTab(tab.key)}
+          className={`flex h-[58px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[11px] font-black transition ${
+            selected ? "bg-emerald-50 text-[#0f8f7d]" : "text-slate-400"
+          }`}
+        >
+          <span className="flex h-5 items-center justify-center">
+            {tab.icon || <Home size={18} />}
+          </span>
+          <span className="block max-w-full truncate leading-4">{tab.label}</span>
+        </button>
+      );
+    })}
+  </div>
+</nav>
+
 
       {menuOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 p-5 backdrop-blur-sm">
