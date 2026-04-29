@@ -50,14 +50,14 @@ export function tabsForRole(role: string): TabItem[] {
   }
 
   if (r === "accountant" || r === "accounting") {
-    return [
-      { key: "overview", label: "الرئيسية" },
-      { key: "settlements", label: "المستحقات" },
-      { key: "reports", label: "التقارير" },
-      { key: "referrals", label: "الإحالات" },
-      { key: "profile", label: "البروفايل" },
-    ];
-  }
+  return [
+    { key: "overview", label: "الرئيسية" },
+    { key: "profits", label: "المستحقات" },
+    { key: "referrals", label: "الإحالات" },
+    { key: "reports", label: "التقارير" },
+    { key: "profile", label: "البروفايل" },
+  ];
+}
 
   if (r === "doctor") {
     return [
