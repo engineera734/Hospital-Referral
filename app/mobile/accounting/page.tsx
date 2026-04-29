@@ -1,8 +1,7 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { AlertTriangle, CheckCircle2, Clock, FileText, Users, Wallet, Download, FileDown } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, FileText, Users, Wallet, Download, Printer, FileDown } from "lucide-react";
 import MobileShell, { MobileLoading, Notice, tabsForRole } from "../../../src/components/mobile/mobile-shell";
 import { MobileInfoCard, MobilePanel, MobileSelect, MobileStatCard } from "../../../src/components/mobile/mobile-cards";
 import MobileProfile from "../../../src/components/mobile/mobile-profile";
@@ -11,22 +10,16 @@ import { formatMoney } from "../../../src/lib/format";
 import {
   buildFinancialReportHtml,
   downloadMobileHtml,
+  printMobileHtml,
   buildSettlementReceiptHtml,
-  downloadMobilePdf,
+  downloadMobilePdf
 } from "../../../src/components/mobile/mobile-reports";
 
 export default function Page() {
   const [active, setActive] = useState("overview");
   const [profile, setProfile] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [data, setData] = useState<any>({
-    doctors: [],
-    referrals: [],
-    rates: [],
-    settlements: [],
-    departments: [],
-    staff: [],
-  });
+  const [data, setData] = useState<any>({ doctors: [], referrals: [], rates: [], settlements: [], departments: [], staff: [] });
   const [message, setMessage] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState("all");
   const [selectedDept, setSelectedDept] = useState("all");
@@ -36,41 +29,22 @@ export default function Page() {
   const [allMonths, setAllMonths] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<{
-    open: boolean;
-    title: string;
-    desc: string;
-    onConfirm: () => void;
-  }>({ open: false, title: "", desc: "", onConfirm: () => {} });
+  const [dialog, setDialog] = useState<{ open: boolean; title: string; desc: string; onConfirm: () => void }>({ open: false, title: "", desc: "", onConfirm: () => {} });
 
-  useEffect(() => {
-    boot();
-  }, []);
+  useEffect(() => { boot(); }, []);
 
   async function boot() {
     try {
-      setLoading(true);
       const p = await getMobileProfile();
       if (!p) return;
-
-      if (String(p.role).toLowerCase() !== "accountant") {
-        window.location.href = "/mobile/dashboard";
-        return;
-      }
-
+      if (String(p.role).toLowerCase() !== "accountant") return window.location.href = "/mobile/dashboard";
       setProfile(p);
       signStorage("profile-images", p.avatar_path).then(setAvatarUrl);
-
       const fetchedData = await mobileAuthFetch("/api/accounting/dashboard-data");
-
-      setData({
-        doctors: fetchedData?.doctors || [],
-        referrals: fetchedData?.referrals || [],
-        rates: fetchedData?.rates || [],
-        settlements: fetchedData?.settlements || [],
-        departments: fetchedData?.departments || [],
-        staff: fetchedData?.staff || [],
-      });
+      console.log("📦 Dashboard Data:", fetchedData); // للتصحيح
+      console.log("👥 Staff Data:", fetchedData.staff); // للتأكد من وجود staff
+      console.log("📋 Referrals Sample:", (fetchedData.referrals || []).slice(0, 3)); // للتأكد من arrived_by
+      setData(fetchedData);
     } catch (e: any) {
       setMessage(e?.message || "تعذر تحميل صفحة المحاسبة.");
     } finally {
@@ -78,111 +52,63 @@ export default function Page() {
     }
   }
 
-  const rateMap = useMemo<Map<string,number>>(() => {
-    return new Map(
-      (data.rates || []).map((r: any) => [
-        `${r.doctor_id}:${r.department_id}`,
-        Number(r.amount || 0),
-      ])
-    );
-  }, [data.rates]);
+  const rateMap = useMemo(() => new Map((data.rates || []).map((r: any) => [`${r.doctor_id}:${r.department_id}`, Number(r.amount || 0)])), [data.rates]);
 
+  // بناء خريطة staff من البيانات
   const staffMap = useMemo(() => {
     const map: Record<string, string> = {};
-    (data.staff || []).forEach((s: any) => {
-      if (s.id && s.full_name) map[s.id] = s.full_name;
+    const staff = data.staff || [];
+    console.log("🔨 Building staffMap from:", staff.length, "staff members");
+    staff.forEach((s: any) => {
+      if (s.id && s.full_name) {
+        map[s.id] = s.full_name;
+        console.log(`  ✅ ${s.id} -> ${s.full_name}`);
+      }
     });
     return map;
   }, [data.staff]);
 
-  const allReferrals = useMemo(() => data.referrals || [], [data.referrals]);
+  // بيانات البطاقات الرئيسية ثابتة من كامل البيانات
+  const allReferrals = useMemo(() => (data.referrals || []), [data.referrals]);
   const allArrived = useMemo(() => allReferrals.filter((r: any) => r.status === "arrived"), [allReferrals]);
   const allPending = useMemo(() => allReferrals.filter((r: any) => r.status === "pending"), [allReferrals]);
 
-  const overviewArrivedTotal = useMemo(() => {
-    return allArrived.reduce(
-      (s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0),
-      0
-    );
-  }, [allArrived, rateMap]);
+  const overviewArrivedTotal = useMemo(() => allArrived.reduce((s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0), 0), [allArrived, rateMap]);
+  const overviewPendingTotal = useMemo(() => allPending.reduce((s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0), 0), [allPending, rateMap]);
+  const overviewSettledTotal = useMemo(() => (data.settlements || []).reduce((s: number, x: any) => s + Number(x.amount || 0), 0), [data.settlements]);
 
-  const overviewPendingTotal = useMemo(() => {
-    return allPending.reduce(
-      (s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0),
-      0
-    );
-  }, [allPending, rateMap]);
-
-  const overviewSettledTotal = useMemo(() => {
-    return (data.settlements || []).reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
-  }, [data.settlements]);
-
+  // بيانات مفلترة
   const filtered = useMemo(() => {
-    const from = Number(mFrom);
-    const to = Number(mTo);
-    const yr = Number(year);
-
+    const from = Number(mFrom), to = Number(mTo), yr = Number(year);
     return (data.referrals || []).filter((r: any) => {
       const date = r.arrived_at || r.referral_date || r.created_at;
       const dt = new Date(date || "");
       const mn = monthNumber(date);
-
-      return (
-        (selectedDoctor === "all" || r.doctors?.id === selectedDoctor) &&
+      return (selectedDoctor === "all" || r.doctors?.id === selectedDoctor) &&
         (selectedDept === "all" || r.departments?.id === selectedDept) &&
         (!year || Number.isNaN(dt.getTime()) || dt.getFullYear() === yr) &&
-        (allMonths || (mn >= from && mn <= to))
-      );
+        (allMonths || (mn >= from && mn <= to));
     });
   }, [data.referrals, selectedDoctor, selectedDept, year, mFrom, mTo, allMonths]);
 
   const filteredArrived = useMemo(() => filtered.filter((r: any) => r.status === "arrived"), [filtered]);
   const filteredPending = useMemo(() => filtered.filter((r: any) => r.status === "pending"), [filtered]);
-
-  const filteredArrivedTotal = useMemo(() => {
-    return filteredArrived.reduce(
-      (s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0),
-      0
-    );
-  }, [filteredArrived, rateMap]);
-
-  const filteredPendingTotal = useMemo(() => {
-    return filteredPending.reduce(
-      (s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0),
-      0
-    );
-  }, [filteredPending, rateMap]);
-
+  const filteredArrivedTotal = useMemo(() => filteredArrived.reduce((s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0), 0), [filteredArrived, rateMap]);
+  const filteredPendingTotal = useMemo(() => filteredPending.reduce((s: number, r: any) => s + Number(rateMap.get(`${r.doctors?.id}:${r.departments?.id || ""}`) || 0), 0), [filteredPending, rateMap]);
   const filteredSettledTotal = useMemo(() => {
     if (selectedDoctor === "all") return 0;
-    return (data.settlements || [])
-      .filter((s: any) => s.doctor_id === selectedDoctor)
-      .reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
+    return (data.settlements || []).filter((s: any) => s.doctor_id === selectedDoctor).reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   }, [data.settlements, selectedDoctor]);
 
-  const doctorChart = (data.doctors || [])
-    .map((d: any) => {
-      const rows = (data.referrals || []).filter((r: any) => r.doctors?.id === d.id);
-      return {
-        name: d.full_name,
-        total: rows.length,
-        arrived: rows.filter((r: any) => r.status === "arrived").length,
-      };
-    })
-    .filter((x: any) => x.total > 0)
-    .slice(0, 8);
+  const doctorChart = (data.doctors || []).map((d: any) => {
+    const rows = (data.referrals || []).filter((r: any) => r.doctors?.id === d.id);
+    return { name: d.full_name, total: rows.length, arrived: rows.filter((r: any) => r.status === "arrived").length };
+  }).filter((x: any) => x.total > 0).slice(0, 8);
 
-  const deptChart = (data.departments || [])
-    .map((d: any) => {
-      const rows = (data.referrals || []).filter((r: any) => r.departments?.id === d.id);
-      return {
-        name: d.name,
-        total: rows.length,
-        arrived: rows.filter((r: any) => r.status === "arrived").length,
-      };
-    })
-    .filter((x: any) => x.total > 0)
-    .slice(0, 8);
+  const deptChart = (data.departments || []).map((d: any) => {
+    const rows = (data.referrals || []).filter((r: any) => r.departments?.id === d.id);
+    return { name: d.name, total: rows.length, arrived: rows.filter((r: any) => r.status === "arrived").length };
+  }).filter((x: any) => x.total > 0).slice(0, 8);
 
   function validate(): boolean {
     if (!allMonths && Number(mFrom) > Number(mTo)) {
@@ -194,19 +120,15 @@ export default function Page() {
 
   function getRateMapObj(): Record<string, number> {
     const obj: Record<string, number> = {};
-    rateMap.forEach((v, k) => {
-      obj[String(k)] = Number(v);
-    });
+    rateMap.forEach((v, k) => { obj[String(k)] = Number(v); });
     return obj;
   }
 
   function report(): string | null {
     if (!validate()) return null;
-
     const doctor = (data.doctors || []).find((d: any) => d.id === selectedDoctor);
     const department = (data.departments || []).find((d: any) => d.id === selectedDept);
-
-    return buildFinancialReportHtml({
+    const html = buildFinancialReportHtml({
       title: selectedDoctor === "all" ? "تقرير مالي عام" : "تقرير مالي محدد",
       rows: filtered,
       doctor,
@@ -218,17 +140,14 @@ export default function Page() {
       settlements: data.settlements,
       staffMap,
     });
+    console.log("📄 Generated Report HTML length:", html?.length);
+    return html;
   }
 
   function downloadReport() {
     const html = report();
     if (!html) return;
-
-    const fileName =
-      selectedDoctor === "all"
-        ? `تقرير-محاسبة-عام-${year}.html`
-        : `تقرير-محاسبة-${selectedDoctor}-${year}.html`;
-
+    const fileName = selectedDoctor === "all" ? `تقرير-محاسبة-عام-${year}.html` : `تقرير-محاسبة-${selectedDoctor}-${year}.html`;
     downloadMobileHtml(fileName, html);
     setMessage("تم تنزيل التقرير بنجاح ✅");
   }
@@ -236,24 +155,21 @@ export default function Page() {
   async function downloadReportPdf() {
     const html = report();
     if (!html) return;
-
-    const fileName =
-      selectedDoctor === "all"
-        ? `تقرير-محاسبة-عام-${year}.pdf`
-        : `تقرير-محاسبة-${selectedDoctor}-${year}.pdf`;
-
+    const fileName = selectedDoctor === "all" ? `تقرير-محاسبة-عام-${year}.pdf` : `تقرير-محاسبة-${selectedDoctor}-${year}.pdf`;
     await downloadMobilePdf(fileName, html);
-    setMessage("تم فتح التقرير للطباعة أو الحفظ PDF ✅");
+    setMessage("تم تنزيل التقرير PDF بنجاح ✅");
+  }
+
+  function printReport() {
+    const html = report();
+    if (!html) return;
+    printMobileHtml(html);
   }
 
   function createSettlementReceipt(settleAmount: number) {
     const doctor = (data.doctors || []).find((d: any) => d.id === selectedDoctor);
     if (!doctor) return;
-
-    const scopeText = allMonths
-      ? `كل الأشهر في سنة ${year}`
-      : `من شهر ${mFrom} إلى شهر ${mTo} / سنة ${year}`;
-
+    const scopeText = allMonths ? `كل الأشهر في سنة ${year}` : `من شهر ${mFrom} إلى شهر ${mTo} / سنة ${year}`;
     const receiptHtml = buildSettlementReceiptHtml({
       doctorName: doctor.full_name,
       doctorSpecialty: doctor.specialty,
@@ -261,13 +177,14 @@ export default function Page() {
       count: filteredArrived.length,
       amount: settleAmount,
       settledBy: profile?.full_name || "محاسب",
-      date: new Date().toLocaleDateString("ar-SA"),
+      date: new Date().toLocaleDateString('ar-SA'),
       rows: filteredArrived,
       rateMap: getRateMapObj(),
       staffMap,
     });
-
-    downloadMobileHtml(`إيصال-تصفية-${doctor.full_name}-${year}.html`, receiptHtml);
+    const fileName = `إيصال-تصفية-${doctor.full_name}-${year}.html`;
+    downloadMobileHtml(fileName, receiptHtml);
+    // لا نطبع مباشرة على الهاتف، ننزل الملف فقط
   }
 
   async function settle() {
@@ -275,9 +192,9 @@ export default function Page() {
       setMessage("اختر طبيبًا محددًا قبل تصفية المستحقات.");
       return;
     }
-
     if (!validate()) return;
 
+    // تنزيل تقرير قبل التصفية
     const preReportHtml = report();
     if (preReportHtml) {
       downloadMobileHtml(`تقرير-قبل-التصفية-${selectedDoctor}-${year}.html`, preReportHtml);
@@ -286,13 +203,11 @@ export default function Page() {
     setDialog({
       open: true,
       title: "تأكيد التصفية",
-      desc: `سيتم تصفية مستحقات الطبيب:\n\nعدد الحالات: ${filteredArrived.length}\nالمبلغ: ${formatMoney(filteredArrivedTotal)}\n\nتم تنزيل تقرير ما قبل التصفية.\nهل تريد المتابعة؟`,
+      desc: `سيتم تصفية مستحقات الطبيب:\n\n👨‍⚕️ عدد الحالات: ${filteredArrived.length}\n💰 المبلغ: ${formatMoney(filteredArrivedTotal)}\n\nتم تنزيل تقرير ما قبل التصفية.\nهل تريد المتابعة؟`,
       onConfirm: async () => {
         setDialog({ open: false, title: "", desc: "", onConfirm: () => {} });
-
         try {
           setBusy(true);
-
           const json = await mobileAuthFetch("/api/admin/settle-doctor", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -306,12 +221,10 @@ export default function Page() {
               month_to: mTo,
             }),
           });
-
           const settleAmount = Number(json.amount || 0);
           createSettlementReceipt(settleAmount);
-
           await boot();
-          setMessage(`✅ تمت التصفية بنجاح. المبلغ: ${formatMoney(settleAmount)}`);
+          setMessage(`✅ تمت التصفية بنجاح!\nالمبلغ: ${formatMoney(settleAmount)}\nتم تنزيل الإيصال والتقرير.`);
         } catch (e: any) {
           setMessage(e?.message || "تعذر التصفية");
         } finally {
@@ -326,24 +239,19 @@ export default function Page() {
       setMessage("اختر طبيبًا محددًا قبل تصفير المصروف.");
       return;
     }
-
     if (filteredSettledTotal <= 0) {
       setMessage("لا يوجد مصروف سابق لتصفيره لهذا الطبيب.");
       return;
     }
-
     const doctor = (data.doctors || []).find((d: any) => d.id === selectedDoctor);
-
     setDialog({
       open: true,
       title: "تصفير المصروف مسبقًا",
-      desc: `سيتم تصفير المصروف مسبقًا للطبيب:\n\n${doctor?.full_name || selectedDoctor}\nالمبلغ الحالي: ${formatMoney(filteredSettledTotal)}\n\nهل أنت متأكد؟`,
+      desc: `سيتم تصفير المصروف مسبقًا للطبيب:\n\n👨‍⚕️ ${doctor?.full_name || selectedDoctor}\n💵 المبلغ الحالي: ${formatMoney(filteredSettledTotal)}\n\nهل أنت متأكد؟`,
       onConfirm: async () => {
         setDialog({ open: false, title: "", desc: "", onConfirm: () => {} });
-
         try {
           setBusy(true);
-
           await mobileAuthFetch("/api/admin/settle-doctor", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -354,7 +262,6 @@ export default function Page() {
               note: "مسح المصروف مسبقًا من تطبيق الهاتف",
             }),
           });
-
           setMessage("✅ تم تصفير المصروف مسبقًا بنجاح.");
           await boot();
         } catch (e: any) {
@@ -366,17 +273,16 @@ export default function Page() {
     });
   }
 
-  const canSettle =
-    selectedDoctor !== "all" &&
-    filteredArrived.length > 0 &&
-    filteredArrivedTotal > 0 &&
-    (allMonths || Number(mFrom) <= Number(mTo));
-
+  // شروط تعطيل الأزرار
+  const canSettle = selectedDoctor !== "all" && filteredArrived.length > 0 && filteredArrivedTotal > 0 && (allMonths || Number(mFrom) <= Number(mTo));
   const canClearPaid = selectedDoctor !== "all" && filteredSettledTotal > 0;
 
-  if (loading || !profile) {
-    return <MobileLoading text="جاري تحميل المحاسبة..." />;
-  }
+  if (loading || !profile) return <MobileLoading text="جاري تحميل المحاسبة..." />;
+
+  const charts = <>
+    <ChartPanel title="إنجاز الدكاترة" data={doctorChart} />
+    <ChartPanel title="حالات الأقسام" data={deptChart} />
+  </>;
 
   return (
     <MobileShell
@@ -387,43 +293,29 @@ export default function Page() {
       onTabChange={setActive}
       avatarUrl={avatarUrl}
     >
-      {message && (
-        <Notice
-          message={message}
-          danger={message.includes("تعذر") || message.includes("يجب") || message.includes("اختر")}
-        />
-      )}
+      {message && <Notice message={message} danger={message.includes("تعذر") || message.includes("يجب")} />}
 
+      {/* نافذة تأكيد مخصصة */}
       {dialog.open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setDialog({ open: false, title: "", desc: "", onConfirm: () => {} })}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDialog({ open: false, title: "", desc: "", onConfirm: () => {} })}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="mx-auto w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mb-3">
                 <AlertTriangle className="text-amber-600" size={28} />
               </div>
               <h3 className="text-lg font-bold text-slate-800">{dialog.title}</h3>
             </div>
-
-            <p className="mb-6 whitespace-pre-line text-center text-sm leading-relaxed text-slate-600">
-              {dialog.desc}
-            </p>
-
+            <p className="text-sm text-slate-600 whitespace-pre-line mb-6 text-center leading-relaxed">{dialog.desc}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDialog({ open: false, title: "", desc: "", onConfirm: () => {} })}
-                className="h-12 flex-1 rounded-xl bg-slate-100 text-sm font-bold text-slate-700"
+                className="flex-1 h-12 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
               >
                 إلغاء
               </button>
               <button
                 onClick={dialog.onConfirm}
-                className="h-12 flex-1 rounded-xl bg-[#0f8f7d] text-sm font-bold text-white"
+                className="flex-1 h-12 rounded-xl bg-[#0f8f7d] text-white font-bold text-sm hover:bg-[#0c7a6b] transition-colors"
               >
                 تأكيد
               </button>
@@ -432,41 +324,32 @@ export default function Page() {
         </div>
       )}
 
-      {active === "overview" && (
-        <>
-          <div className="mb-4 grid grid-cols-2 gap-3">
-            <MobileStatCard label="مستحقات المستقبلين" value={formatMoney(overviewArrivedTotal)} icon={<Wallet size={18} />} />
-            <MobileStatCard label="مصروف تراكمي" value={formatMoney(overviewSettledTotal)} icon={<CheckCircle2 size={18} />} tone="blue" />
-            <MobileStatCard label="معلقة متوقعة" value={formatMoney(overviewPendingTotal)} icon={<Clock size={18} />} tone="orange" />
-            <MobileStatCard label="الأطباء" value={(data.doctors || []).length} icon={<Users size={18} />} tone="purple" />
-          </div>
+      {active === "overview" && <>
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <MobileStatCard label="مستحقات المستقبلين" value={formatMoney(overviewArrivedTotal)} icon={<Wallet size={18} />} />
+          <MobileStatCard label="مصروف تراكمي" value={formatMoney(overviewSettledTotal)} icon={<CheckCircle2 size={18} />} tone="blue" />
+          <MobileStatCard label="معلقة متوقعة" value={formatMoney(overviewPendingTotal)} icon={<Clock size={18} />} tone="orange" />
+          <MobileStatCard label="الأطباء" value={(data.doctors || []).length} icon={<Users size={18} />} tone="purple" />
+        </div>
+        {charts}
+      </>}
 
-          <ChartPanel title="إنجاز الدكاترة" data={doctorChart} />
-          <ChartPanel title="حالات الأقسام" data={deptChart} />
-        </>
-      )}
-
-      {["settlements", "profits", "reports"].includes(active) && (
+      {(active === "profits" || active === "reports") && (
         <MobilePanel
-          title={["settlements", "profits"].includes(active) ? "تصفية المستحقات" : "التقارير المالية"}
+          title={active === "profits" ? "تصفية المستحقات" : "التقارير المالية"}
           subtitle="عام أو محدد حسب الطبيب والفترة والقسم"
         >
           <Filters
             data={data}
-            selectedDoctor={selectedDoctor}
-            setSelectedDoctor={setSelectedDoctor}
-            selectedDept={selectedDept}
-            setSelectedDept={setSelectedDept}
-            year={year}
-            setYear={setYear}
-            mFrom={mFrom}
-            setMFrom={setMFrom}
-            mTo={mTo}
-            setMTo={setMTo}
-            allMonths={allMonths}
-            setAllMonths={setAllMonths}
+            selectedDoctor={selectedDoctor} setSelectedDoctor={setSelectedDoctor}
+            selectedDept={selectedDept} setSelectedDept={setSelectedDept}
+            year={year} setYear={setYear}
+            mFrom={mFrom} setMFrom={setMFrom}
+            mTo={mTo} setMTo={setMTo}
+            allMonths={allMonths} setAllMonths={setAllMonths}
           />
 
+          {/* بطاقات الفلترة الحالية */}
           <div className="my-3 grid grid-cols-2 gap-2">
             <MobileStatCard label="مستحق فعلي" value={formatMoney(filteredArrivedTotal)} />
             <MobileStatCard label="معلق متوقع" value={formatMoney(filteredPendingTotal)} tone="orange" />
@@ -474,105 +357,70 @@ export default function Page() {
             <MobileStatCard label="صافي" value={formatMoney(Math.max(filteredArrivedTotal - filteredSettledTotal, 0))} tone="purple" />
           </div>
 
+          {/* أزرار التقارير - تظهر فقط في قسم التقارير */}
           {active === "reports" && (
-            <div className="mb-3 space-y-2">
-              <button
-                onClick={downloadReport}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 text-xs font-black text-white"
-              >
-                <Download size={16} />
-                تنزيل التقرير HTML
+            <div className="space-y-2 mb-3">
+              <button onClick={downloadReport} className="w-full h-12 rounded-2xl bg-slate-900 text-xs font-black text-white flex items-center justify-center gap-2">
+                <Download size={16} /> تنزيل التقرير HTML
               </button>
-
-              <button
-                onClick={downloadReportPdf}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 text-xs font-black text-white"
-              >
-                <FileDown size={16} />
-                تنزيل التقرير PDF
+              <button onClick={downloadReportPdf} className="w-full h-12 rounded-2xl bg-blue-700 text-xs font-black text-white flex items-center justify-center gap-2">
+                <FileDown size={16} /> تنزيل التقرير PDF
               </button>
             </div>
           )}
 
-          {["settlements", "profits"].includes(active) && (
-            <div className="mb-3 space-y-2">
+          {/* أزرار التصفية - تظهر فقط في قسم المستحقات */}
+          {active === "profits" && (
+            <div className="space-y-2 mb-3">
               <button
                 disabled={!canSettle || busy}
                 onClick={settle}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0f8f7d] text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="w-full h-12 rounded-2xl bg-[#0f8f7d] text-xs font-black text-white flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
               >
-                <AlertTriangle size={16} />
-                تصفية مستحقات الطبيب المحدد
+                <AlertTriangle size={16} /> تصفية مستحقات الطبيب المحدد
               </button>
-
               <button
                 disabled={!canClearPaid || busy}
                 onClick={clearPaid}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-600 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="w-full h-12 rounded-2xl bg-slate-600 text-xs font-black text-white flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
               >
-                <FileText size={16} />
-                تصفير المصروف مسبقًا
+                <FileText size={16} /> تصفير المصروف مسبقًا
               </button>
             </div>
           )}
 
-          <ReferralList rows={filtered} rateMap={rateMap} staffMap={staffMap} />
-        </MobilePanel>
-      )}
-
-      {["referrals", "cases"].includes(active) && (
-        <MobilePanel title="الإحالات المرضية" subtitle="كل الإحالات الموجودة في النظام">
-          <ReferralList rows={allReferrals} rateMap={rateMap} staffMap={staffMap} limit={30} />
+          {/* قائمة الحالات المفلترة */}
+{filtered.length === 0 && (
+  <div className="text-center py-8 text-slate-400">
+    <p className="text-lg">لا توجد حالات</p>
+    <p className="text-sm mt-1">جرب تغيير الفلترة</p>
+  </div>
+)}
+{filtered.slice(0, 15).map((r: any) => {
+  // استخراج قيمة الربح بأمان
+  const profitKey = `${r.doctors?.id}:${r.departments?.id || ""}`;
+  const profitValue = Number(rateMap.get(profitKey) || 0);
+  
+  return (
+    <MobileInfoCard
+      key={r.id}
+      title={r.patient_name || "غير معروف"}
+      subtitle={`👨‍⚕️ ${r.doctors?.full_name || "-"} | 🏥 ${r.departments?.name || "-"}`}
+      meta={[
+        { label: "الحالة", value: r.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة" },
+        { label: "موظف الاستقبال", value: staffMap[r.arrived_by || ""] || r.arrived_by || "-" },
+        { label: "تاريخ الإرسال", value: safeDate(r.referral_date || r.created_at) },
+        { label: "تاريخ الاستقبال", value: safeDate(r.arrived_at) || "لم يستقبل بعد" },
+        { label: "الربح", value: formatMoney(profitValue) },
+      ]}
+    />
+  );
+})}
         </MobilePanel>
       )}
 
       {active === "profile" && <MobileProfile profile={profile} onUpdated={boot} />}
     </MobileShell>
-  );
-}
-
-function ReferralList({
-  rows,
-  rateMap,
-  staffMap,
-  limit = 15,
-}: {
-  rows: any[];
-  rateMap: any;
-  staffMap: Record<string, string>;
-  limit?: number;
-}) {
-  if (!rows || rows.length === 0) {
-    return (
-      <div className="py-8 text-center text-slate-400">
-        <p className="text-lg">لا توجد حالات</p>
-        <p className="mt-1 text-sm">جرب تغيير الفلترة</p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {rows.slice(0, limit).map((r: any) => {
-        const profitKey = `${r.doctors?.id}:${r.departments?.id || ""}`;
-        const profitValue = Number(rateMap.get(profitKey) || 0);
-
-        return (
-          <MobileInfoCard
-            key={r.id}
-            title={r.patient_name || "غير معروف"}
-            subtitle={`👨‍⚕️ ${r.doctors?.full_name || "-"} | 🏥 ${r.departments?.name || "-"}`}
-            meta={[
-              { label: "الحالة", value: r.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة" },
-              { label: "موظف الاستقبال", value: staffMap[r.arrived_by || ""] || r.arrived_by || "-" },
-              { label: "تاريخ الإرسال", value: safeDate(r.referral_date || r.created_at) },
-              { label: "تاريخ الاستقبال", value: safeDate(r.arrived_at) || "لم يستقبل بعد" },
-              { label: "الربح", value: formatMoney(profitValue) },
-            ]}
-          />
-        );
-      })}
-    </>
   );
 }
 
@@ -596,66 +444,35 @@ function ChartPanel({ title, data }: any) {
 }
 
 function Filters(p: any) {
-  function handleMFromChange(val: string) {
+  const handleMFromChange = (val: string) => {
     p.setMFrom(val);
     if (Number(val) > Number(p.mTo)) p.setMTo(val);
-  }
+  };
 
   return (
     <div className="grid gap-2">
-      <MobileSelect value={p.selectedDoctor} onChange={(e) => p.setSelectedDoctor(e.target.value)}>
+      <MobileSelect value={p.selectedDoctor} onChange={(e: any) => p.setSelectedDoctor(e.target.value)}>
         <option value="all">كل الأطباء</option>
-        {(p.data.doctors || []).map((d: any) => (
-          <option key={d.id} value={d.id}>
-            {d.full_name}
-          </option>
-        ))}
+        {(p.data.doctors || []).map((d: any) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
       </MobileSelect>
-
-      <MobileSelect value={p.selectedDept} onChange={(e) => p.setSelectedDept(e.target.value)}>
+      <MobileSelect value={p.selectedDept} onChange={(e: any) => p.setSelectedDept(e.target.value)}>
         <option value="all">كل الأقسام</option>
-        {(p.data.departments || []).map((d: any) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
+        {(p.data.departments || []).map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
       </MobileSelect>
-
-      <MobileSelect value={p.year} onChange={(e) => p.setYear(e.target.value)}>
-        {[2026, 2025, 2024].map((y) => (
-          <option key={y} value={String(y)}>
-            {y}
-          </option>
-        ))}
+      <MobileSelect value={p.year} onChange={(e: any) => p.setYear(e.target.value)}>
+        {[2026, 2025, 2024].map(y => <option key={y} value={String(y)}>{y}</option>)}
       </MobileSelect>
-
       <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
-        <input
-          type="checkbox"
-          checked={p.allMonths}
-          onChange={(e) => p.setAllMonths(e.target.checked)}
-        />
+        <input type="checkbox" checked={p.allMonths} onChange={(e) => p.setAllMonths(e.target.checked)} />
         كل الأشهر
       </label>
-
       {!p.allMonths && (
         <div className="grid grid-cols-2 gap-2">
-          <MobileSelect value={p.mFrom} onChange={(e) => handleMFromChange(e.target.value)}>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={String(m)}>
-                من {m}
-              </option>
-            ))}
+          <MobileSelect value={p.mFrom} onChange={(e: any) => handleMFromChange(e.target.value)}>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={String(m)}>من شهر {m}</option>)}
           </MobileSelect>
-
-          <MobileSelect value={p.mTo} onChange={(e) => p.setMTo(e.target.value)}>
-            {Array.from({ length: 12 }, (_, i) => i + 1)
-              .filter((m) => m >= Number(p.mFrom))
-              .map((m) => (
-                <option key={m} value={String(m)}>
-                  إلى {m}
-                </option>
-              ))}
+          <MobileSelect value={p.mTo} onChange={(e: any) => p.setMTo(e.target.value)}>
+            {Array.from({ length: 12 }, (_, i) => i + 1).filter(m => m >= Number(p.mFrom)).map(m => <option key={m} value={String(m)}>إلى شهر {m}</option>)}
           </MobileSelect>
         </div>
       )}
