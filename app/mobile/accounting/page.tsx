@@ -78,7 +78,7 @@ export default function Page() {
     }
   }
 
-  const rateMap = useMemo(() => {
+  const rateMap = useMemo<Map<string,number>>(() => {
     return new Map(
       (data.rates || []).map((r: any) => [
         `${r.doctor_id}:${r.department_id}`,
