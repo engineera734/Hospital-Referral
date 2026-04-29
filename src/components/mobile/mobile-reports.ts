@@ -318,3 +318,25 @@ th,td{white-space:nowrap}
 </body>
 </html>`;
 }
+
+export function printMobileHtml(htmlContent: string): void {
+  const win = window.open("", "_blank");
+
+  if (!win) {
+    downloadMobileHtml("تقرير-للطباعة.html", htmlContent);
+    return;
+  }
+
+  win.document.open();
+  win.document.write(htmlContent);
+  win.document.close();
+
+  win.focus();
+
+  setTimeout(() => {
+    win.print();
+  }, 700);
+}
+
+
+
