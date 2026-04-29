@@ -61,7 +61,7 @@ export default function Page() {
     console.log("🔨 Building staffMap from:", staff.length, "staff members");
     staff.forEach((s: any) => {
       if (s.id && s.full_name) {
-        map[String(s.id)] = s.full_name;
+        map[s.id] = s.full_name;
         console.log(`  ✅ ${s.id} -> ${s.full_name}`);
       }
     });
@@ -408,7 +408,7 @@ export default function Page() {
       subtitle={`👨‍⚕️ ${r.doctors?.full_name || "-"} | 🏥 ${r.departments?.name || "-"}`}
       meta={[
         { label: "الحالة", value: r.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة" },
-       { label: "موظف الاستقبال", value: staffMap[String(r.arrived_by || "")] || r.arrived_by || "-" },
+        { label: "موظف الاستقبال", value: staffMap[r.arrived_by || ""] || r.arrived_by || "-" },
         { label: "تاريخ الإرسال", value: safeDate(r.referral_date || r.created_at) },
         { label: "تاريخ الاستقبال", value: safeDate(r.arrived_at) || "لم يستقبل بعد" },
         { label: "الربح", value: formatMoney(profitValue) },
