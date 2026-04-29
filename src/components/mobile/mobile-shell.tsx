@@ -33,6 +33,55 @@ function uniqueTabs(tabs: TabItem[]) {
   });
 }
 
+
+export function tabsForRole(role: string): TabItem[] {
+  const r = String(role || "").toLowerCase();
+
+  if (r === "admin") {
+    return [
+      { key: "overview", label: "الرئيسية" },
+      { key: "doctors", label: "الأطباء" },
+      { key: "staff", label: "الموظفون" },
+      { key: "settlements", label: "المستحقات" },
+      { key: "reports", label: "التقارير" },
+      { key: "referrals", label: "الإحالات" },
+      { key: "profile", label: "البروفايل" },
+    ];
+  }
+
+  if (r === "accountant" || r === "accounting") {
+    return [
+      { key: "overview", label: "الرئيسية" },
+      { key: "settlements", label: "المستحقات" },
+      { key: "reports", label: "التقارير" },
+      { key: "referrals", label: "الإحالات" },
+      { key: "profile", label: "البروفايل" },
+    ];
+  }
+
+  if (r === "doctor") {
+    return [
+      { key: "overview", label: "الرئيسية" },
+      { key: "referrals", label: "إحالاتي" },
+      { key: "add", label: "إضافة" },
+      { key: "profile", label: "البروفايل" },
+    ];
+  }
+
+  if (r === "reception") {
+    return [
+      { key: "overview", label: "الرئيسية" },
+      { key: "referrals", label: "الإحالات" },
+      { key: "profile", label: "البروفايل" },
+    ];
+  }
+
+  return [
+    { key: "overview", label: "الرئيسية" },
+    { key: "profile", label: "البروفايل" },
+  ];
+}
+
 export function MobileLoading({ text = "جاري التحميل..." }: { text?: string }) {
   return (
     <main dir="rtl" className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900">
