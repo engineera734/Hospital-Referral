@@ -334,9 +334,9 @@ export default function Page() {
         {charts}
       </>}
 
-      {(active === "settlements" || active === "reports") && (
+      {(["profits", "settlements", "reports"].includes(active)) && (
         <MobilePanel
-          title={active === "settlements" ? "تصفية المستحقات" : "التقارير المالية"}
+          title={["profits", "settlements"].includes(active) ? "تصفية المستحقات" : "التقارير المالية"}
           subtitle="عام أو محدد حسب الطبيب والفترة والقسم"
         >
           <Filters
@@ -370,7 +370,7 @@ export default function Page() {
           )}
 
           {/* أزرار التصفية - تظهر فقط في قسم المستحقات */}
-          {active === "settlements" && (
+          {(["profits", "settlements"].includes(active)) && (
             <div className="space-y-2 mb-3">
               <button
                 disabled={!canSettle || busy}
@@ -418,6 +418,38 @@ export default function Page() {
 })}
         </MobilePanel>
       )}
+  
+      
+      
+     {(["referrals", "cases"].includes(active)) && (
+  <MobilePanel title="الإحالات المرضية" subtitle="كل الإحالات الموجودة في النظام">
+    {allReferrals.length === 0 && (
+      <div className="text-center py-8 text-slate-400">
+        <p className="text-lg">لا توجد إحالات</p>
+      </div>
+    )}
+
+    {allReferrals.slice(0, 30).map((r: any) => {
+      const profitKey = `${r.doctors?.id}:${r.departments?.id || ""}`;
+      const profitValue = Number(rateMap.get(profitKey) || 0);
+
+      return (
+        <MobileInfoCard
+          key={r.id}
+          title={r.patient_name || "غير معروف"}
+          subtitle={`👨‍⚕️ ${r.doctors?.full_name || "-"} | 🏥 ${r.departments?.name || "-"}`}
+          meta={[
+            { label: "الحالة", value: r.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة" },
+            { label: "موظف الاستقبال", value: staffMap[r.arrived_by || ""] || r.arrived_by || "-" },
+            { label: "تاريخ الإرسال", value: safeDate(r.referral_date || r.created_at) },
+            { label: "تاريخ الاستقبال", value: safeDate(r.arrived_at) || "لم يستقبل بعد" },
+            { label: "الربح", value: formatMoney(profitValue) },
+          ]}
+        />
+      );
+    })}
+  </MobilePanel>
+)}
 
       {active === "profile" && <MobileProfile profile={profile} onUpdated={boot} />}
     </MobileShell>
