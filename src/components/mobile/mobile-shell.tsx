@@ -1,5 +1,4 @@
 "use client";
-
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Home, LogOut, Menu, X } from "lucide-react";
 import { createClient } from "../../../src/lib/supabase/client";
