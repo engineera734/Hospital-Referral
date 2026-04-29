@@ -1,7 +1,8 @@
 "use client";
+
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Home, LogOut, Menu, X } from "lucide-react";
-import { createClient } from "../../../src/lib/supabase/client";
+import { Home, LogOut, Menu, X ,FilePlus2,FileText} from "lucide-react";
+import { createClient } from "../../lib/supabase/client";
 
 type TabItem = {
   key: string;
@@ -206,3 +207,5 @@ export default function MobileShell({
     </main>
   );
 }
+
+
