@@ -418,6 +418,35 @@ export default function Page() {
 })}
         </MobilePanel>
       )}
+      {active === "referrals" && (
+  <MobilePanel title="الإحالات المرضية" subtitle="كل الإحالات الموجودة في النظام">
+    {allReferrals.length === 0 && (
+      <div className="text-center py-8 text-slate-400">
+        <p className="text-lg">لا توجد إحالات</p>
+      </div>
+    )}
+
+    {allReferrals.slice(0, 30).map((r: any) => {
+      const profitKey = `${r.doctors?.id}:${r.departments?.id || ""}`;
+      const profitValue = Number(rateMap.get(profitKey) || 0);
+
+      return (
+        <MobileInfoCard
+          key={r.id}
+          title={r.patient_name || "غير معروف"}
+          subtitle={`👨‍⚕️ ${r.doctors?.full_name || "-"} | 🏥 ${r.departments?.name || "-"}`}
+          meta={[
+            { label: "الحالة", value: r.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة" },
+            { label: "موظف الاستقبال", value: staffMap[r.arrived_by || ""] || r.arrived_by || "-" },
+            { label: "تاريخ الإرسال", value: safeDate(r.referral_date || r.created_at) },
+            { label: "تاريخ الاستقبال", value: safeDate(r.arrived_at) || "لم يستقبل بعد" },
+            { label: "الربح", value: formatMoney(profitValue) },
+          ]}
+        />
+      );
+    })}
+  </MobilePanel>
+)}
 
       {active === "profile" && <MobileProfile profile={profile} onUpdated={boot} />}
     </MobileShell>
