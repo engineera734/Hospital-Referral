@@ -23,39 +23,22 @@ export function downloadMobileHtml(fileName: string, htmlContent: string): void 
  * تنزيل التقرير كـ PDF باستخدام html2pdf (يتم تحميل المكتبة ديناميكياً)
  */
 export async function downloadMobilePdf(fileName: string, htmlContent: string): Promise<void> {
-  // إنشاء نافذة مخفية لتحويل HTML إلى PDF
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  document.body.appendChild(iframe);
-  
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!iframeDoc) {
-    // فشل iframe، ننزل كـ HTML بدلاً
+  const win = window.open("", "_blank");
+
+  if (!win) {
     downloadMobileHtml(fileName.replace(".pdf", ".html"), htmlContent);
-    document.body.removeChild(iframe);
     return;
   }
-  
-  iframeDoc.open();
-  iframeDoc.write(htmlContent);
-  iframeDoc.close();
-  
-  // استخدام window.print مع إعدادات PDF
-  const win = iframe.contentWindow;
-  if (win) {
-    // @ts-ignore
-    const beforePrint = () => {};
-    // @ts-ignore
-    const afterPrint = () => {
-      document.body.removeChild(iframe);
-    };
-    
-    win.addEventListener('afterprint', afterPrint);
+
+  win.document.open();
+  win.document.write(htmlContent);
+  win.document.close();
+
+  win.focus();
+
+  setTimeout(() => {
     win.print();
-  } else {
-    document.body.removeChild(iframe);
-    downloadMobileHtml(fileName.replace(".pdf", ".html"), htmlContent);
-  }
+  }, 700);
 }
 
 /**
