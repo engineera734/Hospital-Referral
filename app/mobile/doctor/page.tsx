@@ -287,23 +287,30 @@ export default function DoctorMobilePage() {
     }
   }
 
-  async function uploadAttachment(referralId: string) {
+  
+async function uploadAttachment(referralId: string) {
   if (!attachment) {
     return { attachment_name: null, attachment_path: null };
   }
 
   const supabase = createClient();
 
-  const safeName = attachment.name
-    .replace(/[^\w.\-\u0600-\u06FF]/g, "_")
-    .replace(/\s+/g, "_");
+  const ext = attachment.name.includes(".")
+    ? attachment.name.split(".").pop()?.toLowerCase()
+    : "file";
 
-  const path = `doctor-referrals/${referralId}/${Date.now()}-${safeName}`;
+  const fileId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  // مهم: المسار إنجليزي فقط حتى لو اسم الملف عربي
+  const path = `doctor-referrals/${referralId}/${fileId}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("referral-files")
     .upload(path, attachment, {
-      upsert: true,
+      upsert: false,
       contentType: attachment.type || "application/octet-stream",
     });
 
@@ -312,10 +319,13 @@ export default function DoctorMobilePage() {
   }
 
   return {
+    // هنا نحفظ الاسم العربي الأصلي للعرض والتنزيل
     attachment_name: attachment.name,
     attachment_path: path,
   };
 }
+
+
 
 
 
