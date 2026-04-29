@@ -538,7 +538,7 @@ function ReferralList({
   limit = 15,
 }: {
   rows: any[];
-  rateMap: Map<string, number>;
+  rateMap: any;
   staffMap: Record<string, string>;
   limit?: number;
 }) {
