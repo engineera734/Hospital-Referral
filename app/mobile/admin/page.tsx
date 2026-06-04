@@ -233,7 +233,10 @@ export default function Page() {
     
     // تنزيل تقرير قبل التصفية
     const preHtml = buildSettlementReport();
-    if (preHtml) downloadMobileHtml(`تقرير-قبل-التصفية-${settleDoctor?.full_name}.html`, preHtml);
+    if (preHtml) {
+  const safeDoctorName = String(settleDoctor?.full_name || "doctor").replace(/[\\/:*?"<>|]/g, "-");
+  await downloadMobilePdf(`تقرير-قبل-التصفية-${safeDoctorName}.pdf`, preHtml);
+}
     
     setDialog({
       open: true,
@@ -271,7 +274,8 @@ export default function Page() {
             rateMap: getRateMapObj(),
             staffMap: staffNameMap,
           });
-          downloadMobileHtml(`إيصال-تصفية-${settleDoctor?.full_name}.html`, receiptHtml);
+          const safeDoctorName = String(settleDoctor?.full_name || "doctor").replace(/[\\/:*?"<>|]/g, "-");
+await downloadMobilePdf(`إيصال-تصفية-${safeDoctorName}.pdf`, receiptHtml);
           
           setMessage(`✅ تمت التصفية بمبلغ ${formatMoney(amount)}`);
           await boot();
@@ -381,7 +385,7 @@ export default function Page() {
 <h2>🧮 موظفو المحاسبة (${accountants.length})</h2>
 <table><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الهوية</th><th>ملاحظات</th></tr></thead><tbody>${accountantRows}</tbody></table>
 <h2>👨‍⚕️ الأطباء (${(data.doctors || []).length})</h2>
-<table><thead><tr><th>الاسم</th><th>التخصص</th><th>البطاقة</th><th>الهاتف</th><th>الكريمي</th><th>التحويلات</th><th>وصل</th><th>الأرباح</th></tr></thead><tbody>${doctorRows}</tbody></table>
+<table><thead><tr><th>الاسم</th><th>التخصص</th><th>البطاقة</th><th>الهاتف</th><th>حساب الكريمي/الرقم المميز</th><th>التحويلات</th><th>وصل</th><th>الأرباح</th></tr></thead><tbody>${doctorRows}</tbody></table>
 <div class="footer">تم إنشاء هذا التقرير تلقائياً من نظام المشفى</div></body></html>`;
   }
 
@@ -457,18 +461,20 @@ export default function Page() {
           <MobileStatCard label="مستحق فعلي" value={formatMoney(arrivedAmount)} icon={<Wallet size={18} />} tone="purple" />
           <MobileStatCard label="معلق متوقع" value={formatMoney(pendingExpected)} icon={<FileText size={18} />} tone="orange" />
         </div>
-        <MobilePanel title="مخطط الدكاترة">
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="total" fill="#0f8f7d" name="الإجمالي" />
-                <Bar dataKey="arrived" fill="#2563eb" name="وصل" />
-              </BarChart>
-            </ResponsiveContainer>
+        <MobilePanel title="مخطط الدكاترة" subtitle="اسحب البطاقة يميناً ويساراً لعرض كامل المخطط">
+          <div className="overflow-x-auto pb-2" dir="ltr">
+            <div className="h-80 min-w-[620px]" dir="rtl">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Bar dataKey="total" fill="#0f8f7d" name="الإجمالي" />
+                  <Bar dataKey="arrived" fill="#2563eb" name="وصل" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </MobilePanel>
       </>}
@@ -492,7 +498,7 @@ export default function Page() {
                 { key: "specialty", placeholder: "التخصص" },
                 { key: "phone", placeholder: "الهاتف" },
                 { key: "national_id", placeholder: "رقم الهوية" },
-                { key: "kareemy_account", placeholder: "حساب الكريمي" },
+                { key: "kareemy_account", placeholder: "حساب الكريمي/الرقم المميز" },
               ].map(f => (
                 <MobileInput
                   key={f.key}
@@ -523,7 +529,7 @@ export default function Page() {
                   meta={[
                     { label: "الهاتف", value: d.phone || "-" },
                     { label: "البطاقة", value: d.card_no || "-" },
-                    { label: "الكريمي", value: d.kareemy_account || "-" },
+                    { label: "حساب الكريمي/الرقم المميز", value: d.kareemy_account || "-" },
                   ]}
                   footer={
                     <button onClick={() => deleteDoctor(d.id, d.full_name)} className="h-10 w-full rounded-2xl bg-red-50 text-xs font-black text-red-600 flex items-center justify-center gap-1">
@@ -649,7 +655,7 @@ export default function Page() {
                   <option value="range">حسب فترة</option>
                 </MobileSelect>
                 <MobileSelect value={settleYear} onChange={e => setSettleYear(e.target.value)}>
-                  {[2026, 2025, 2024].map(y => <option key={y} value={String(y)}>{y}</option>)}
+                  {[2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={String(y)}>{y}</option>)}
                 </MobileSelect>
                 {settleScope === "range" && (
                   <div className="grid grid-cols-2 gap-2">
@@ -696,7 +702,7 @@ export default function Page() {
             <p className="font-bold text-slate-700 text-sm mb-2">📊 التقرير المالي</p>
             <div className="grid gap-2">
               <MobileSelect value={reportYear} onChange={e => setReportYear(e.target.value)}>
-                {[2026, 2025, 2024].map(y => <option key={y} value={String(y)}>{y}</option>)}
+                {[2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={String(y)}>{y}</option>)}
               </MobileSelect>
               <MobileSelect value={reportDoctor} onChange={e => setReportDoctor(e.target.value)}>
                 <option value="all">كل الأطباء</option>
