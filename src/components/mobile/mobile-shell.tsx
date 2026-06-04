@@ -144,7 +144,7 @@ export default function MobileShell({
   return (
     
 
-<main dir="rtl" className="min-h-screen bg-slate-100 pb-[96px] text-slate-900">
+<main dir="rtl" className="min-h-screen bg-slate-100 pb-[128px] text-slate-900">
 
 
       <header className="sticky top-0 z-40 border-b border-white/70 bg-white/90 px-4 py-3 backdrop-blur-xl">
@@ -175,7 +175,7 @@ export default function MobileShell({
         </div>
       </header>
 
-      <section className="mx-auto max-w-md px-4 py-4">{children}</section>
+      <section className="mx-auto max-w-md px-4 pb-10 pt-4">{children}</section>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-100 bg-white/95 backdrop-blur-xl">
   <div className="mx-auto flex h-[76px] max-w-md items-center justify-around gap-1 px-2">
