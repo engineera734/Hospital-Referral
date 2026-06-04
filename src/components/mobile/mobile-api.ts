@@ -140,5 +140,20 @@ export function doctorByReferral(referral: any, doctors: any[] = []) {
 }
 
 export function getDoctorAvatarPath(doctor: any, people: any[] = []) {
-  return people.find((p) => p.id === doctor?.user_id)?.avatar_path || null;
+  if (!doctor) return null;
+
+  const doctorUserId = doctor?.user_id ? String(doctor.user_id) : "";
+  const doctorId = doctor?.id ? String(doctor.id) : "";
+  const doctorName = String(doctor?.full_name || "").trim().toLowerCase();
+
+  const profile = people.find((p) => {
+    const profileId = p?.id ? String(p.id) : "";
+    const profileName = String(p?.full_name || "").trim().toLowerCase();
+
+    return (doctorUserId && profileId === doctorUserId)
+      || (doctorId && profileId === doctorId)
+      || (doctorName && profileName === doctorName);
+  });
+
+  return profile?.avatar_path || null;
 }
