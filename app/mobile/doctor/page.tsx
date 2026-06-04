@@ -417,13 +417,18 @@ setMessage(
     return new Map(rates.map((r: any) => [`${r.doctor_id}:${r.department_id}`, Number(r.amount || 0)]));
   }, [rates]);
 
-  const visibleReferrals = useMemo(() => {
-    return referrals.filter((r) => statusFilter === "all" || r.status === statusFilter);
-  }, [referrals, statusFilter]);
+  const doctorVisibleStatuses = ["pending", "arrived"];
+  const displayReferrals = useMemo(
+    () => referrals.filter((r) => doctorVisibleStatuses.includes(String(r.status))),
+    [referrals]
+  );
 
-  const pending = referrals.filter((r) => r.status === "pending");
-  const arrived = referrals.filter((r) => r.status === "arrived");
-  const completed = referrals.filter((r) => r.status === "completed");
+  const visibleReferrals = useMemo(() => {
+    return displayReferrals.filter((r) => statusFilter === "all" || r.status === statusFilter);
+  }, [displayReferrals, statusFilter]);
+
+  const pending = displayReferrals.filter((r) => r.status === "pending");
+  const arrived = displayReferrals.filter((r) => r.status === "arrived");
 
   const activeDoctorId = doctor?.id || referrals.map((r) => relationDoctorId(r)).find(Boolean) || "";
 
@@ -435,7 +440,6 @@ setMessage(
   const chartData = [
     { name: "معلقة", value: pending.length },
     { name: "وصلت", value: arrived.length },
-    { name: "مكتملة", value: completed.length },
   ];
 
   if (loading || !profile) return <MobileLoading text="جاري تحميل صفحة الطبيب..." />;
@@ -459,7 +463,7 @@ setMessage(
       {active === "overview" && (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3">
-            <MobileStatCard label="كل الإحالات" value={referrals.length} icon={<FileText size={18} />} />
+            <MobileStatCard label="كل الإحالات" value={displayReferrals.length} icon={<FileText size={18} />} />
             <MobileStatCard label="لم تصل" value={pending.length} icon={<Clock size={18} />} tone="orange" />
             <MobileStatCard label="وصلت" value={arrived.length} icon={<CheckCircle2 size={18} />} tone="blue" />
             <MobileStatCard label="مستحقات وصلت" value={formatMoney(totalDue)} icon={<Wallet size={18} />} tone="purple" />
@@ -468,24 +472,26 @@ setMessage(
           <DoctorProfileCard doctor={doctor} profile={profile} avatarUrl={avatarUrl} />
 
           <MobilePanel title="مخطط الإحالات" subtitle="توزيع الحالات حسب الحالة">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="عدد الحالات" fill="#0f8f7d" radius={[10, 10, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="overflow-x-auto pb-2" dir="ltr">
+              <div className="h-64 min-w-[420px]" dir="rtl">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" name="عدد الحالات" fill="#0f8f7d" radius={[10, 10, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </MobilePanel>
 
           <MobilePanel title="آخر الإحالات" subtitle="أحدث الحالات المحالة إلى الطبيب">
-            {referrals.slice(0, 5).map((r) => (
+            {displayReferrals.slice(0, 5).map((r) => (
               <ReferralCard key={r.id} referral={r} doctorAvatar={avatarUrl} />
             ))}
-            {!referrals.length && <MobileEmpty text="لا توجد إحالات لهذا الطبيب." />}
+            {!displayReferrals.length && <MobileEmpty text="لا توجد إحالات لهذا الطبيب." />}
           </MobilePanel>
         </>
       )}
@@ -497,8 +503,6 @@ setMessage(
               <option value="all">كل الحالات</option>
               <option value="pending">معلقة</option>
               <option value="arrived">وصلت</option>
-              <option value="completed">مكتملة</option>
-              <option value="cancelled">ملغاة</option>
             </MobileSelect>
           </div>
 
@@ -589,7 +593,7 @@ setMessage(
 
 function DoctorProfileCard({ doctor, profile, avatarUrl }: any) {
   return (
-    <MobilePanel title="بيانات الطبيب" subtitle="بيانات الحساب الطبي وربط الكريمي">
+    <MobilePanel title="بيانات الطبيب" subtitle="بيانات الحساب الطبي وربط حساب الكريمي/الرقم المميز">
       <div className="mb-4 flex items-center gap-3 rounded-[1.4rem] bg-slate-50 p-4">
         <MobileAvatar url={avatarUrl} name={doctor?.full_name || profile?.full_name} size="lg" />
         <div className="min-w-0">
@@ -603,7 +607,7 @@ function DoctorProfileCard({ doctor, profile, avatarUrl }: any) {
         <Info icon={<Phone size={16} />} label="الهاتف" value={doctor?.phone || profile?.phone || "-"} />
         <Info icon={<Stethoscope size={16} />} label="التخصص" value={doctor?.specialty || "-"} />
         <Info label="الحالة" value={doctor?.is_active === false ? "غير نشط" : "نشط"} />
-        <Info className="col-span-2" label="حساب الكريمي" value={doctor?.kareemy_account || "-"} />
+        <Info className="col-span-2" label="حساب الكريمي/الرقم المميز" value={doctor?.kareemy_account || "-"} />
       </div>
     </MobilePanel>
   );
@@ -644,18 +648,31 @@ function ReferralCard({ referral, doctorAvatar }: { referral: Referral; doctorAv
 }
 
 function AttachmentDownloadButton({ url, name }: { url?: string | null; name?: string | null }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
   async function download() {
-    if (!url) return;
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = name || "referral-attachment";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objectUrl);
+    if (!url || busy) return;
+    try {
+      setBusy(true);
+      setMessage("");
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("تعذر تنزيل المرفق.");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = name || "referral-attachment";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+      setMessage("تم بدء تنزيل المرفق.");
+    } catch (error: any) {
+      setMessage(error?.message || "تعذر تنزيل المرفق.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!url) {
@@ -667,17 +684,26 @@ function AttachmentDownloadButton({ url, name }: { url?: string | null; name?: s
   }
 
   return (
-    <button
-      type="button"
-      onClick={download}
-      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f8f7d] px-3 py-3 text-xs font-black text-white"
-    >
-      <Download size={16} />
-      تنزيل المرفق على الجهاز
-    </button>
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={download}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f8f7d] px-3 py-3 text-xs font-black text-white transition active:scale-[0.98] disabled:opacity-60"
+      >
+        {busy ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        ) : (
+          <Download size={16} />
+        )}
+        {busy ? "جاري تجهيز المرفق..." : "تنزيل المرفق على الجهاز"}
+      </button>
+      {message && (
+        <p className={`rounded-2xl px-3 py-2 text-center text-[11px] font-black ${message.includes("تعذر") ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
+          {message}
+        </p>
+      )}
+    </div>
   );
 }
-
-
-
 
