@@ -144,13 +144,18 @@ export default function Page() {
     return html;
   }
 
-  function downloadReport() {
-    const html = report();
-    if (!html) return;
-    const fileName = selectedDoctor === "all" ? `تقرير-محاسبة-عام-${year}.html` : `تقرير-محاسبة-${selectedDoctor}-${year}.html`;
-    downloadMobileHtml(fileName, html);
-    setMessage("تم تنزيل التقرير بنجاح ✅");
-  }
+async function downloadReport() {
+  const html = report();
+  if (!html) return;
+
+  const fileName =
+    selectedDoctor === "all"
+      ? `تقرير-محاسبة-عام-${year}.pdf`
+      : `تقرير-محاسبة-${selectedDoctor}-${year}.pdf`;
+
+  await downloadMobilePdf(fileName, html);
+  setMessage("تم تنزيل التقرير PDF بنجاح ✅");
+}
 
   async function downloadReportPdf() {
     const html = report();
@@ -166,26 +171,32 @@ export default function Page() {
     printMobileHtml(html);
   }
 
-  function createSettlementReceipt(settleAmount: number) {
-    const doctor = (data.doctors || []).find((d: any) => d.id === selectedDoctor);
-    if (!doctor) return;
-    const scopeText = allMonths ? `كل الأشهر في سنة ${year}` : `من شهر ${mFrom} إلى شهر ${mTo} / سنة ${year}`;
-    const receiptHtml = buildSettlementReceiptHtml({
-      doctorName: doctor.full_name,
-      doctorSpecialty: doctor.specialty,
-      scope: scopeText,
-      count: filteredArrived.length,
-      amount: settleAmount,
-      settledBy: profile?.full_name || "محاسب",
-      date: new Date().toLocaleDateString('ar-SA'),
-      rows: filteredArrived,
-      rateMap: getRateMapObj(),
-      staffMap,
-    });
-    const fileName = `إيصال-تصفية-${doctor.full_name}-${year}.html`;
-    downloadMobileHtml(fileName, receiptHtml);
-    // لا نطبع مباشرة على الهاتف، ننزل الملف فقط
-  }
+async function createSettlementReceipt(settleAmount: number) {
+  const doctor = (data.doctors || []).find((d: any) => d.id === selectedDoctor);
+  if (!doctor) return;
+
+  const scopeText = allMonths
+    ? `كل الأشهر في سنة ${year}`
+    : `من شهر ${mFrom} إلى شهر ${mTo} / سنة ${year}`;
+
+  const receiptHtml = buildSettlementReceiptHtml({
+    doctorName: doctor.full_name,
+    doctorSpecialty: doctor.specialty,
+    scope: scopeText,
+    count: filteredArrived.length,
+    amount: settleAmount,
+    settledBy: profile?.full_name || "محاسب",
+    date: new Date().toLocaleDateString("ar-SA"),
+    rows: filteredArrived,
+    rateMap: getRateMapObj(),
+    staffMap,
+  });
+
+  const safeDoctorName = String(doctor.full_name || "doctor").replace(/[\\/:*?"<>|]/g, "-");
+  const fileName = `إيصال-تصفية-${safeDoctorName}-${year}.pdf`;
+
+  await downloadMobilePdf(fileName, receiptHtml);
+}
 
   async function settle() {
     if (selectedDoctor === "all") {
@@ -197,8 +208,8 @@ export default function Page() {
     // تنزيل تقرير قبل التصفية
     const preReportHtml = report();
     if (preReportHtml) {
-      downloadMobileHtml(`تقرير-قبل-التصفية-${selectedDoctor}-${year}.html`, preReportHtml);
-    }
+  await downloadMobilePdf(`تقرير-قبل-التصفية-${selectedDoctor}-${year}.pdf`, preReportHtml);
+}
 
     setDialog({
       open: true,
@@ -222,7 +233,7 @@ export default function Page() {
             }),
           });
           const settleAmount = Number(json.amount || 0);
-          createSettlementReceipt(settleAmount);
+          await createSettlementReceipt(settleAmount);
           await boot();
           setMessage(`✅ تمت التصفية بنجاح!\nالمبلغ: ${formatMoney(settleAmount)}\nتم تنزيل الإيصال والتقرير.`);
         } catch (e: any) {
@@ -455,18 +466,20 @@ export default function Page() {
 
 function ChartPanel({ title, data }: any) {
   return (
-    <MobilePanel title={title}>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="total" fill="#0f8f7d" name="الإجمالي" />
-            <Bar dataKey="arrived" fill="#2563eb" name="وصل" />
-          </BarChart>
-        </ResponsiveContainer>
+    <MobilePanel title={title} subtitle="اسحب البطاقة يميناً ويساراً لعرض كامل المخطط">
+      <div className="overflow-x-auto pb-2" dir="ltr">
+        <div className="h-72 min-w-[560px]" dir="rtl">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="total" fill="#0f8f7d" name="الإجمالي" />
+              <Bar dataKey="arrived" fill="#2563eb" name="وصل" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </MobilePanel>
   );
@@ -489,7 +502,7 @@ function Filters(p: any) {
         {(p.data.departments || []).map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
       </MobileSelect>
       <MobileSelect value={p.year} onChange={(e: any) => p.setYear(e.target.value)}>
-        {[2026, 2025, 2024].map(y => <option key={y} value={String(y)}>{y}</option>)}
+        {[2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={String(y)}>{y}</option>)}
       </MobileSelect>
       <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
         <input type="checkbox" checked={p.allMonths} onChange={(e) => p.setAllMonths(e.target.checked)} />
