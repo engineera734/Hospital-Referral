@@ -112,7 +112,7 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
       ? docRows.map((row: any) => {
           const amount = getRateValue(rateMap, `${row.doctors?.id}:${row.departments?.id || ""}`);
           const receptionist = getArrivedByName(staffMap, row.arrived_by);
-          const statusBadge = row.status === "arrived" ? "✅ مستقبلة" : "⏳ منتظرة";
+          const statusBadge = row.status === "arrived" ? "مستقبلة" : "منتظرة";
           return `
             <tr>
               <td>${row.patient_name || "-"}</td>
@@ -128,7 +128,7 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
 
     return `
       <section class="doctor-section">
-        <h2>👨‍⚕️ الطبيب: ${doc.full_name || "غير معروف"}</h2>
+        <h2>الطبيب: ${doc.full_name || "غير معروف"}</h2>
        
 
 <div class="table-wrap"><table>
@@ -146,12 +146,12 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
           </thead>
           <tbody>${rowsHtml}</tbody>
           <tfoot>
-            <tr><td colspan="6"><strong>✅ الحالات المستقبلة</strong></td><td><strong>${arrivedRows.length}</strong></td></tr>
-            <tr><td colspan="6"><strong>⏳ الحالات المنتظرة</strong></td><td><strong>${pendingRows.length}</strong></td></tr>
-            <tr><td colspan="6"><strong>💰 إجمالي المستحق</strong></td><td><strong>${formatMoney(totalAmount)}</strong></td></tr>
+            <tr><td colspan="6"><strong>الحالات المستقبلة</strong></td><td><strong>${arrivedRows.length}</strong></td></tr>
+            <tr><td colspan="6"><strong>الحالات المنتظرة</strong></td><td><strong>${pendingRows.length}</strong></td></tr>
+            <tr><td colspan="6"><strong>إجمالي المستحق</strong></td><td><strong>${formatMoney(totalAmount)}</strong></td></tr>
             ${settledAmount > 0 ? `
-            <tr><td colspan="6"><strong>💵 المصروف سابقاً</strong></td><td><strong>${formatMoney(settledAmount)}</strong></td></tr>
-            <tr><td colspan="6"><strong>📊 الصافي المتبقي</strong></td><td><strong>${formatMoney(Math.max(totalAmount - settledAmount, 0))}</strong></td></tr>
+            <tr><td colspan="6"><strong>المصروف سابقاً</strong></td><td><strong>${formatMoney(settledAmount)}</strong></td></tr>
+            <tr><td colspan="6"><strong>الصافي المتبقي</strong></td><td><strong>${formatMoney(Math.max(totalAmount - settledAmount, 0))}</strong></td></tr>
             ` : ""}
           </tfoot>
        
@@ -162,11 +162,11 @@ export function buildFinancialReportHtml(data: FinancialReportData): string {
 
   const metaHtml = `
     <div class="meta">
-      <p><strong>📅 السنة:</strong> ${year}</p>
-      <p><strong>📆 النطاق:</strong> ${dateScope}</p>
-      ${doctor ? `<p><strong>👨‍⚕️ الطبيب:</strong> ${doctor.full_name}</p>` : ""}
-      ${department ? `<p><strong>🏥 القسم:</strong> ${formatDepartment(department.name)}</p>` : ""}
-      <p><strong>📋 عدد الحالات:</strong> ${rows.length}</p>
+      <p><strong>السنة:</strong> ${year}</p>
+      <p><strong>النطاق:</strong> ${dateScope}</p>
+      ${doctor ? `<p><strong>الطبيب:</strong> ${doctor.full_name}</p>` : ""}
+      ${department ? `<p><strong>القسم:</strong> ${formatDepartment(department.name)}</p>` : ""}
+      <p><strong>عدد الحالات:</strong> ${rows.length}</p>
     </div>`;
 
   return `<!DOCTYPE html>
@@ -184,23 +184,23 @@ th,td{white-space:nowrap}
 
 
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:16px;color:#0f172a;background:#f8fafc;direction:rtl}
-    .container{max-width:800px;margin:0 auto;background:white;border-radius:16px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
-    h1{font-size:20px;color:#1e293b;margin-bottom:8px;border-bottom:3px solid #0f8f7d;padding-bottom:12px}
-    .meta{background:#f1f5f9;border-radius:12px;padding:12px;margin:12px 0;font-size:13px;color:#475569;line-height:1.8}
-    .doctor-section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0}
-    h2{font-size:16px;color:#0f8f7d;margin-bottom:12px}
-    th,td{border:1px solid #e2e8f0;padding:6px;text-align:right}
-    th{background:#f0fdf4;color:#0f8f7d;font-weight:700}
-    td{color:#334155}
-    tfoot td{background:#f8fafc;font-size:11px}
-    .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8}
-    @media print{body{background:white}.container{box-shadow:none}}
+    body{font-family:Arial,Tahoma,sans-serif;padding:18px;color:#111827;background:white;direction:rtl}
+    .container{max-width:800px;margin:0 auto;background:white;border:1px solid #d1d5db;padding:20px}
+    h1{font-size:20px;color:#111827;margin-bottom:10px;border-bottom:2px solid #111827;padding-bottom:10px;text-align:center}
+    .meta{border:1px solid #d1d5db;padding:12px;margin:12px 0;font-size:13px;color:#374151;line-height:1.8;background:#fff}
+    .doctor-section{background:#fff;border:1px solid #d1d5db;padding:14px;margin:14px 0;break-inside:avoid}
+    h2{font-size:15px;color:#111827;margin-bottom:10px}
+    th,td{border:1px solid #d1d5db;padding:6px;text-align:right}
+    th{background:#f3f4f6;color:#111827;font-weight:700}
+    td{color:#1f2937}
+    tfoot td{background:#f9fafb;font-size:11px}
+    .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #d1d5db;font-size:11px;color:#6b7280}
+    @media print{body{background:white}.container{border:none}}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📊 ${title}</h1>
+    <h1>${title}</h1>
     ${metaHtml}
     ${doctorSections || '<p style="text-align:center;color:#94a3b8;padding:24px;">لا توجد بيانات للعرض</p>'}
     <div class="footer">تم إنشاء هذا التقرير تلقائياً - ${new Date().toLocaleDateString('ar-SA')}</div>
@@ -255,40 +255,40 @@ table{min-width:680px;width:100%;border-collapse:collapse;font-size:10px;margin:
 th,td{white-space:nowrap}
 
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:16px;color:#0f172a;background:#f8fafc;direction:rtl}
-    .container{max-width:800px;margin:0 auto;background:white;border-radius:16px;padding:20px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
-    .header{text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #10b981}
-    h1{font-size:22px;color:#059669}
-    .receipt-badge{display:inline-block;background:#d1fae5;color:#065f46;padding:4px 12px;border-radius:20px;font-size:12px;margin-top:8px}
-    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f0fdf4;border-radius:12px;padding:16px;margin:16px 0;font-size:13px}
+    body{font-family:Arial,Tahoma,sans-serif;padding:18px;color:#111827;background:white;direction:rtl}
+    .container{max-width:800px;margin:0 auto;background:white;border:1px solid #d1d5db;padding:20px}
+    .header{text-align:center;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #111827}
+    h1{font-size:22px;color:#111827}
+    .receipt-badge{display:inline-block;border:1px solid #9ca3af;color:#111827;padding:4px 12px;font-size:12px;margin-top:8px;background:#fff}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid #d1d5db;padding:14px;margin:14px 0;font-size:13px;background:#fff}
     .meta-item{display:flex;flex-direction:column;gap:4px}
-    .meta-label{color:#64748b;font-size:11px;font-weight:600}
-    .meta-value{color:#0f172a;font-weight:700;font-size:14px}
-    .amount-highlight{background:#059669;color:white;padding:8px 16px;border-radius:8px;font-size:18px;font-weight:800;text-align:center;grid-column:1/-1}
-    th,td{border:1px solid #e2e8f0;padding:6px;text-align:right}
-    th{background:#f0fdf4;color:#059669;font-weight:700}
-    .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:2px dashed #e2e8f0;font-size:11px;color:#94a3b8}
-    .signature-area{display:flex;justify-content:space-between;margin-top:24px;padding-top:16px}
-    .signature-box{width:150px;text-align:center;border-top:1px solid #94a3b8;padding-top:8px;font-size:11px;color:#64748b}
-    @media print{body{background:white}.container{box-shadow:none}}
+    .meta-label{color:#4b5563;font-size:11px;font-weight:700}
+    .meta-value{color:#111827;font-weight:700;font-size:14px}
+    .amount-highlight{border:2px solid #111827;color:#111827;background:#fff;padding:8px 16px;font-size:18px;font-weight:800;text-align:center;grid-column:1/-1}
+    th,td{border:1px solid #d1d5db;padding:6px;text-align:right}
+    th{background:#f3f4f6;color:#111827;font-weight:700}
+    .footer{text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #d1d5db;font-size:11px;color:#6b7280}
+    .signature-area{display:flex;justify-content:space-between;margin-top:28px;padding-top:16px}
+    .signature-box{width:170px;text-align:center;border-top:1px solid #111827;padding-top:8px;font-size:11px;color:#374151}
+    @media print{body{background:white}.container{border:none}}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🧾 إيصال تصفية مستحقات</h1>
+      <h1>إيصال تصفية مستحقات</h1>
       <div class="receipt-badge">رقم الإيصال: ${Date.now().toString(36).toUpperCase()}</div>
     </div>
     <div class="meta-grid">
-      <div class="meta-item"><span class="meta-label">👨‍⚕️ الطبيب</span><span class="meta-value">${doctorName}</span></div>
-      <div class="meta-item"><span class="meta-label">🏥 التخصص</span><span class="meta-value">${doctorSpecialty || "عام"}</span></div>
-      <div class="meta-item"><span class="meta-label">📅 تاريخ التصفية</span><span class="meta-value">${date}</span></div>
-      <div class="meta-item"><span class="meta-label">👤 منفذ التصفية</span><span class="meta-value">${settledBy}</span></div>
-      <div class="meta-item"><span class="meta-label">📋 عدد الحالات</span><span class="meta-value">${count} حالة</span></div>
-      <div class="meta-item"><span class="meta-label">📆 نطاق التصفية</span><span class="meta-value">${scope}</span></div>
-      <div class="amount-highlight">💰 إجمالي المبلغ المصفى: ${formatMoney(amount)}</div>
+      <div class="meta-item"><span class="meta-label">الطبيب</span><span class="meta-value">${doctorName}</span></div>
+      <div class="meta-item"><span class="meta-label">التخصص</span><span class="meta-value">${doctorSpecialty || "عام"}</span></div>
+      <div class="meta-item"><span class="meta-label">تاريخ التصفية</span><span class="meta-value">${date}</span></div>
+      <div class="meta-item"><span class="meta-label">منفذ التصفية</span><span class="meta-value">${settledBy}</span></div>
+      <div class="meta-item"><span class="meta-label">عدد الحالات</span><span class="meta-value">${count} حالة</span></div>
+      <div class="meta-item"><span class="meta-label">نطاق التصفية</span><span class="meta-value">${scope}</span></div>
+      <div class="amount-highlight">إجمالي المبلغ المصفى: ${formatMoney(amount)}</div>
     </div>
-    <h3 style="margin-top:20px;color:#334155;">📋 تفاصيل الحالات المصفاة:</h3>
+    <h3 style="margin-top:20px;color:#334155;">تفاصيل الحالات المصفاة:</h3>
   
 
 <div class="table-wrap"><table>
