@@ -68,34 +68,36 @@ export default function ReceptionMobilePage() {
       setAvatarUrl(signedAvatar ? `${signedAvatar}${signedAvatar.includes("?") ? "&" : "?"}v=${Date.now()}` : null);
 
       const supabase = createClient();
-      const [referralRes, doctorRes, peopleRes] = await Promise.all([
-        supabase
-          .from("referrals")
-          .select(`
-            id,
-            patient_name,
-            patient_age,
-            diagnosis,
-            priority,
-            status,
-            referral_date,
-            created_at,
-            arrived_at,
-            attachment_name,
-            attachment_path,
-            departments(id, name),
-            doctors(id, full_name, specialty, phone, card_no, user_id)
-          `)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("doctors")
-          .select("id, full_name, specialty, phone, card_no, user_id, is_active")
-          .order("full_name"),
-        supabase
-          .from("profiles")
-          .select("id, full_name, role, avatar_path")
-          .in("role", ["doctor", "admin", "reception", "accountant"]),
-      ]);
+const [referralRes, doctorRes, peopleRes] = await Promise.all([
+  supabase
+    .from("referrals")
+    .select(`
+      id,
+      referral_code,
+      patient_name,
+      patient_age,
+      diagnosis,
+      priority,
+      status,
+      referral_date,
+      created_at,
+      arrived_at,
+      attachment_name,
+      attachment_path,
+      departments(id, name),
+      doctors(id, full_name, specialty, phone, card_no, user_id)
+    `)
+    .order("created_at", { ascending: false }),
+
+  supabase
+    .from("doctors")
+    .select("id, full_name, specialty, phone, card_no, user_id, is_active")
+    .order("full_name"),
+
+  supabase.rpc("get_doctor_avatar_profiles"),
+]);
+
+
 
       if (referralRes.error) throw referralRes.error;
       if (doctorRes.error) throw doctorRes.error;
@@ -107,11 +109,17 @@ export default function ReceptionMobilePage() {
       setPeople(peopleRows);
 
       const enriched = await Promise.all(
-        ((referralRes.data || []) as Referral[]).map(async (r) => {
-          const doctor = doctorRows.find((d: any) => String(d.id) === String(r.doctors?.id));
+        ((referralRes.data || []) as unknown as Referral[]).map(async (r) => {
+
+
+          const doctor = doctorRows.find((d: any) => String(d.id) === String(r.doctors?.id)) || r.doctors;
           const avatarPath = getDoctorAvatarPath(doctor, peopleRows);
           const doctorAvatar = await signStorage("profile-images", avatarPath);
-          return { ...r, doctor_avatar: doctorAvatar };
+          return {
+            ...r,
+            doctors: doctor || r.doctors,
+            doctor_avatar: doctorAvatar ? `${doctorAvatar}${doctorAvatar.includes("?") ? "&" : "?"}v=${Date.now()}` : null,
+          };
         })
       );
 
@@ -267,7 +275,13 @@ function DoctorMiniProfile({ referral }: { referral: Referral }) {
   return (
     <div className="rounded-2xl border border-teal-100 bg-white p-3">
       <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-800">
-        <Stethoscope size={15} className="text-[#0f8f7d]" /> بروفايل الطبيب
+        <MobileAvatar url={referral.doctor_avatar} name={d?.full_name || "طبيب"} size="sm" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1">
+            <Stethoscope size={15} className="text-[#0f8f7d]" /> بروفايل الطبيب
+          </div>
+          <p className="truncate text-[11px] text-slate-500">{d?.full_name || "-"}</p>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-500">
         <span>الاسم: <b className="text-slate-800">{d?.full_name || "-"}</b></span>
